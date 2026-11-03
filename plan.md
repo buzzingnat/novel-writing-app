@@ -33,7 +33,7 @@ app/
     server/    main.ts (http server), files.ts (safe read/write/list), api.ts (routes)
     client/    main.ts, views/{planning,wiki,manuscript}.ts,
                editor.ts (split editor), markdown.ts, api.ts (fetch), style.css, index.html
-  test/        *.test.ts + fixtures/ (a tiny fake novel folder; tests never touch the real one)
+  test/        *.test.ts + helpers.ts (builds a tiny fake novel folder in a temp dir; tests never touch the real one)
   dist/        build output (generated)
 ```
 The project root defaults to the folder above `app/`. Override with `NOVEL_ROOT=/path`.
@@ -54,12 +54,13 @@ The project root defaults to the folder above `app/`. Override with `NOVEL_ROOT=
   - `PUT /api/file` takes `{ path, content, expectedMtimeMs }`; it returns 409 if the file changed on disk since it was loaded.
   - `POST /api/chapter` creates the next numbered chapter.
   - `GET` and `PUT /api/word-log` read the daily log (the server recounts and updates it on load and on every manuscript save).
-- **Path safety:** every path is resolved against the root; reject anything that escapes the root (`..`, absolute paths, symlinks out), isn't `.md`, or isn't the one allowed `manuscript/.word-log.json`. Hidden files and `app/` and `node_modules/` are never listed.
+- **Path safety:** every path is resolved against the root; reject anything that escapes the root (`..`, absolute paths, symlinks out) or isn't a visible `.md` file. Hidden files and `app/` and `node_modules/` are never listed. (Built in Step 1: the browser file API is `.md`-only. `manuscript/.word-log.json` is written only by the server's own tracker code in Step 6, never through the file API.)
+- **Write protection:** besides the Host check, write requests must be `application/json` and carry no foreign `Origin`, so another website can't post to the app.
 - **Writes are atomic:** write to a temp file in the same folder, then rename, so a crash can't leave half a chapter.
 - **Conflict handling:** the client sends the mtime it loaded; a 409 shows the Reload / Keep mine banner. "Keep mine" re-sends with the new mtime.
 - **Planning sidebar groups:** `00`–`09` files by number prefix (missing steps greyed, expected name on hover); Tracking = `threads`, `theme-map`, `structure-toolbox`, `outline-status`; Notes = other `planning/*.md`; Archive = `planning/archive/*.md`; `progress.md` on top; `agents.md` not listed.
 - **Wiki link resolution:** case-insensitive match on filename (no extension), then frontmatter `aliases`, then page title. `[[a|label]]` shows `label`; `[[a#heading]]` links to the page and ignores the heading. Links inside code spans/blocks are not links. Backlinks are computed by scanning all wiki files and refresh on save.
-- **Word count rule (please check it):** strip frontmatter, then count whitespace-separated tokens, ignoring tokens that are only Markdown symbols (`#`, `---`, `*`, `>`). Same rule everywhere (chapter, total, daily).
+- **Word count rule (please check it):** strip frontmatter, split on whitespace and em/en dashes, and count pieces that contain at least one letter or digit. So `#`, `---`, `*`, `>`, and a lone `—` don't count; `well-known` is one word; `ran—fast` is two. The chapter's `# Title` heading words count. Same rule everywhere (chapter, total, daily). (Refined in Step 5; code in `src/shared/wordcount.ts`.)
 - **Daily log rule:** exactly as in design.md. `start` = previous day's last `end`; first run baselines at the load-time total; recount on load and every save; net words; local-midnight day boundary. The log arithmetic is a pure function with the most tests in the project.
 - **Autosave:** a client timer every 5 minutes saves every file that has unsaved changes. Cmd+S saves the current file immediately.
 - **UI state remembered** (in `localStorage`): split minimize state per view, chapter list shown/hidden, DAILY expanded/collapsed, last open file per view.

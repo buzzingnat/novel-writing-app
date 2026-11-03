@@ -295,6 +295,7 @@ Keeps the plan and the wiki beside the text without leaving the page. (The AGENT
 - Frontmatter appears as a small header strip in the preview, not raw YAML (it stays editable in the source side).
 - `_templates/` and `README.md` are reachable but listed at the bottom of the tree.
 - Links here (backlinks) and links out are computed from all wiki files and refresh on save.
+- _Added in Step 4:_ in windows narrower than about 1100px, the links panel moves under the page tree so the editor keeps its width. The search box filters by file name, title, and alias; Enter opens the top result. The first visit opens `README`. A new page from a red link defaults to the folder of the page you're on.
 
 ### View 3: Manuscript (focus mode)
 Chapter list hidden (default while writing):

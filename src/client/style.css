@@ -1,0 +1,859 @@
+:root {
+  --bg: #fbfaf7;
+  --surface: #f2efe8;
+  --text: #2b2a27;
+  --muted: #7a766d;
+  --faint: #b9b4a9;
+  --border: #e2ddd2;
+  --accent: #8a4b2a;
+  --missing: #b3261e;
+  --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --font-prose: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1c1b19;
+    --surface: #262522;
+    --text: #e8e4da;
+    --muted: #9c978c;
+    --faint: #5c5850;
+    --border: #3a3833;
+    --accent: #e0a07a;
+    --missing: #f28b82;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: 15px;
+}
+
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 16px;
+  height: 44px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  flex: none;
+}
+
+.tabs {
+  display: flex;
+  gap: 4px;
+}
+
+.tab {
+  font: inherit;
+  color: var(--muted);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 10px 12px 8px;
+  cursor: pointer;
+}
+
+.tab:hover {
+  color: var(--text);
+}
+
+.tab.active {
+  color: var(--text);
+  border-bottom-color: var(--accent);
+}
+
+.tab:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.save-status {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.view {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.view > * {
+  height: 100%;
+  overflow: auto;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+button {
+  font: inherit;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+
+button:hover {
+  border-color: var(--faint);
+}
+
+button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--bg);
+}
+
+.save-status[data-status="dirty"] {
+  color: var(--text);
+}
+
+.save-status[data-status="conflict"],
+.save-status[data-status="error"] {
+  color: var(--missing);
+}
+
+/* Split editor */
+
+.editor {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.editor-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--border);
+  flex: none;
+}
+
+.editor-title {
+  color: var(--muted);
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.editor-toggles {
+  display: flex;
+  gap: 4px;
+  flex: none;
+}
+
+.toggle {
+  font-size: 13px;
+  color: var(--muted);
+  padding: 2px 10px;
+}
+
+.toggle[aria-pressed="true"] {
+  color: var(--text);
+  background: var(--surface);
+  border-color: var(--faint);
+}
+
+.editor-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: color-mix(in srgb, var(--missing) 12%, var(--bg));
+  border-bottom: 1px solid var(--border);
+  flex: none;
+}
+
+.editor-banner-text {
+  flex: 1;
+}
+
+.editor-panes {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.editor[data-layout="source"] .editor-panes,
+.editor[data-layout="preview"] .editor-panes {
+  grid-template-columns: 1fr;
+}
+
+.editor[data-layout="source"] .editor-preview,
+.editor[data-layout="preview"] .editor-source {
+  display: none;
+}
+
+.editor-source {
+  resize: none;
+  border: none;
+  border-right: 1px solid var(--border);
+  outline: none;
+  padding: 16px 20px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 13.5px;
+  line-height: 1.6;
+  min-height: 0;
+  height: 100%;
+}
+
+.editor-preview {
+  overflow: auto;
+  padding: 16px 28px 64px;
+  min-height: 0;
+}
+
+.editor-empty {
+  display: none;
+  padding: 48px 24px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.editor.is-empty .editor-toolbar,
+.editor.is-empty .editor-panes {
+  display: none;
+}
+
+.editor.is-empty .editor-empty {
+  display: block;
+}
+
+/* Rendered Markdown */
+
+.markdown-body {
+  font-family: var(--font-prose);
+  font-size: 17px;
+  line-height: 1.6;
+  max-width: 46em;
+}
+
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3 {
+  font-weight: 600;
+  line-height: 1.25;
+  margin: 1.4em 0 0.5em;
+}
+
+.markdown-body h1:first-child,
+.markdown-body .frontmatter + h1 {
+  margin-top: 0;
+}
+
+.markdown-body a {
+  color: var(--accent);
+}
+
+.markdown-body code {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  background: var(--surface);
+  padding: 1px 4px;
+  border-radius: 4px;
+}
+
+.markdown-body pre {
+  background: var(--surface);
+  padding: 10px 12px;
+  border-radius: 6px;
+  overflow: auto;
+}
+
+.markdown-body pre code {
+  background: none;
+  padding: 0;
+}
+
+.markdown-body blockquote {
+  margin: 0;
+  padding-left: 14px;
+  border-left: 3px solid var(--border);
+  color: var(--muted);
+}
+
+.markdown-body table {
+  border-collapse: collapse;
+  font-family: var(--font-ui);
+  font-size: 14px;
+}
+
+.markdown-body th,
+.markdown-body td {
+  border: 1px solid var(--border);
+  padding: 4px 8px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.markdown-body hr {
+  border: none;
+  border-top: 1px solid var(--border);
+}
+
+.markdown-body .frontmatter {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--muted);
+  margin: 0 0 1em;
+}
+
+/* Unsaved-changes dialog */
+
+.app-dialog {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--text);
+  padding: 20px 22px 16px;
+  max-width: 420px;
+}
+
+.app-dialog::backdrop {
+  background: rgb(0 0 0 / 0.3);
+}
+
+.app-dialog p {
+  margin: 0 0 16px;
+}
+
+.dialog-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* Sidebar layout */
+
+.view > .with-sidebar {
+  display: grid;
+  grid-template-columns: 230px minmax(0, 1fr);
+  overflow: hidden;
+}
+
+.sidebar {
+  overflow: auto;
+  padding: 10px 8px 24px;
+  border-right: 1px solid var(--border);
+  background: var(--surface);
+  font-size: 14px;
+}
+
+.sidebar-section + .sidebar-section {
+  margin-top: 12px;
+}
+
+.sidebar-heading {
+  display: block;
+  width: 100%;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 4px 8px;
+  background: none;
+  border: none;
+  border-radius: 4px;
+}
+
+button.sidebar-heading:hover {
+  color: var(--text);
+}
+
+.sidebar-list {
+  list-style: none;
+  margin: 2px 0 0;
+  padding: 0;
+}
+
+.sidebar-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 3px 8px;
+  background: none;
+  border: none;
+  border-radius: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-item:hover {
+  background: var(--bg);
+}
+
+.sidebar-item[aria-current="page"] {
+  background: var(--bg);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.sidebar-item.not-started {
+  color: var(--faint);
+  cursor: default;
+}
+
+.sidebar-item.not-started:hover {
+  background: none;
+}
+
+.sidebar-item:focus-visible,
+.sidebar-heading:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.placeholder {
+  max-width: 640px;
+  margin: 64px auto;
+  padding: 0 16px;
+  color: var(--muted);
+}
+
+.placeholder h1 {
+  color: var(--text);
+  font-family: var(--font-prose);
+  font-weight: normal;
+}
+
+/* Wiki view: tree | page | links */
+
+.view > .wiki-layout {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr) 220px;
+  overflow: hidden;
+}
+
+.wiki-left {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-right: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.wiki-left .sidebar {
+  flex: 1;
+  border-right: none;
+}
+
+.wiki-navbar {
+  display: flex;
+  gap: 4px;
+  padding: 8px 8px 4px;
+  flex: none;
+}
+
+.nav-button {
+  padding: 0 9px;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.nav-button:disabled {
+  color: var(--faint);
+  cursor: default;
+}
+
+.wiki-search {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  font-size: 13px;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 3px 8px;
+}
+
+.links-panel {
+  overflow: auto;
+  padding: 10px 8px 24px;
+  border-left: 1px solid var(--border);
+  background: var(--surface);
+  font-size: 14px;
+}
+
+.links-panel .sidebar-section + .sidebar-section {
+  margin-top: 16px;
+}
+
+.links-empty {
+  color: var(--muted);
+  font-size: 13px;
+  margin: 4px 8px;
+}
+
+.sidebar-item.missing,
+.markdown-body a.wikilink.missing {
+  color: var(--missing);
+}
+
+.markdown-body a.wikilink {
+  text-decoration: none;
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+.markdown-body a.wikilink.missing {
+  border-bottom-style: dashed;
+  border-bottom-color: var(--missing);
+}
+
+.frontmatter-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 14px;
+  font-family: var(--font-ui);
+  font-size: 12px;
+}
+
+.chip {
+  color: var(--muted);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 1px 9px;
+}
+
+.chip-placeholder {
+  color: var(--accent);
+}
+
+.frontmatter-error {
+  border-left: 3px solid var(--missing);
+}
+
+.app-dialog label {
+  display: block;
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.app-dialog input,
+.app-dialog select {
+  display: block;
+  width: 100%;
+  margin-top: 4px;
+  font: inherit;
+  font-size: 15px;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 8px;
+}
+
+.app-dialog .dialog-note {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.chip {
+  white-space: nowrap;
+}
+
+/* Narrow windows: the links panel moves under the page tree so the editor keeps its width. */
+@media (max-width: 1100px) {
+  .view > .wiki-layout {
+    grid-template-columns: 220px minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) minmax(0, 40%);
+    grid-template-areas:
+      "tree editor"
+      "links editor";
+  }
+
+  .wiki-left {
+    grid-area: tree;
+  }
+
+  .wiki-layout > .editor {
+    grid-area: editor;
+  }
+
+  .links-panel {
+    grid-area: links;
+    border-left: none;
+    border-right: 1px solid var(--border);
+    border-top: 1px solid var(--border);
+  }
+}
+
+/* Manuscript view: focus mode with a chapter list that toggles */
+
+.topbar-tools {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+  margin-right: 12px;
+}
+
+.view > .manuscript-layout {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  overflow: hidden;
+}
+
+.manuscript-layout[data-chapters="hidden"] {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.manuscript-layout[data-chapters="hidden"] .chapter-list {
+  display: none;
+}
+
+.chapter-list {
+  overflow: auto;
+  padding: 10px 8px 24px;
+  border-right: 1px solid var(--border);
+  background: var(--surface);
+  font-size: 14px;
+}
+
+.chapter-item {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.chapter-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chapter-count {
+  color: var(--muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  font-weight: normal;
+}
+
+.new-chapter {
+  display: block;
+  width: 100%;
+  margin: 10px 0 0;
+  text-align: left;
+  font-size: 13px;
+  color: var(--muted);
+  background: none;
+  border-style: dashed;
+}
+
+.chapter-total {
+  margin: 14px 8px 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  font-size: 13px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.manuscript-main {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.manuscript-main .editor {
+  flex: 1;
+  height: auto;
+}
+
+.manuscript-status {
+  flex: none;
+  padding: 6px 16px;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 12px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.manuscript-status:empty {
+  display: none;
+}
+
+/* The writing column: serif, about 65 characters wide, centered in each pane. */
+.prose-editor .editor-toolbar {
+  border-bottom-color: transparent;
+}
+
+.prose-editor .editor-source,
+.prose-editor .editor-preview {
+  font-family: var(--font-prose);
+  font-size: 18px;
+  line-height: 1.7;
+  padding: 32px max(24px, calc((100% - 36em) / 2)) 96px;
+}
+
+.prose-editor .editor-preview.markdown-body {
+  max-width: none;
+}
+
+/* Daily word counts, below the manuscript total */
+
+.daily {
+  margin-top: 8px;
+}
+
+.daily-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.daily-heading .daily-net {
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: normal;
+  font-size: 12px;
+}
+
+.daily-list {
+  list-style: none;
+  margin: 2px 0 0;
+  padding: 0 8px;
+  font-size: 13px;
+}
+
+.daily-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 2px 0;
+  color: var(--text);
+}
+
+.daily-net {
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+.daily-row.negative .daily-net {
+  color: var(--missing);
+}
+
+/* Help */
+
+.help-button {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  margin-left: 10px;
+  border-radius: 50%;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.help-dialog {
+  max-width: 480px;
+}
+
+.help-heading {
+  font-weight: 600;
+}
+
+.shortcuts {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 6px 14px;
+  margin: 0 0 14px;
+  font-size: 14px;
+}
+
+.shortcuts dd {
+  margin: 0;
+}
+
+kbd {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 6px;
+}
+
+.help-tips {
+  margin: 0 0 16px;
+  padding-left: 18px;
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+/* Long save errors shouldn't push the top bar around. */
+.save-status {
+  min-width: 0;
+  max-width: 40vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Narrow windows: slimmer sidebars, so the editor keeps most of the width. */
+@media (max-width: 800px) {
+  .view > .with-sidebar,
+  .view > .manuscript-layout:not([data-chapters="hidden"]) {
+    grid-template-columns: 170px minmax(0, 1fr);
+  }
+
+  .view > .wiki-layout {
+    grid-template-columns: 170px minmax(0, 1fr);
+  }
+
+  .topbar {
+    padding: 0 8px;
+  }
+
+  .tab {
+    padding: 10px 8px 8px;
+  }
+
+  .editor-source,
+  .editor-preview {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+}
