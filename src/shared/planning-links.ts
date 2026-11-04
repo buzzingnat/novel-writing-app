@@ -21,3 +21,21 @@ export function resolvePlanningLink(target: string, planning: Tree["planning"]):
     active.find((path) => linkKey(path) === key) ?? planning.archive.find((path) => linkKey(path) === key) ?? null
   );
 }
+
+/** For a link written in a planning file: planning files first, then wiki pages (design.md, "Which area wins"). */
+export function resolveFromPlanning(
+  target: string,
+  planning: Tree["planning"],
+  wiki: { resolve(target: string): string | null },
+): string | null {
+  return resolvePlanningLink(target, planning) ?? wiki.resolve(target);
+}
+
+/** For a link written in a wiki page: wiki pages first, then planning files (design.md, "Which area wins"). */
+export function resolveFromWiki(
+  target: string,
+  wiki: { resolve(target: string): string | null },
+  planning: Tree["planning"] | null,
+): string | null {
+  return wiki.resolve(target) ?? (planning ? resolvePlanningLink(target, planning) : null);
+}

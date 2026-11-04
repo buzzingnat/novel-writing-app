@@ -1,5 +1,6 @@
 import { slugify } from "../../shared/chapters.ts";
 import { baseName } from "../../shared/paths.ts";
+import { resolveFromWiki, resolvePlanningLink } from "../../shared/planning-links.ts";
 import type { Tree } from "../../shared/tree.ts";
 import {
   buildWikiIndex,
@@ -11,6 +12,7 @@ import {
 import { fetchFile, fetchTree, fetchWikiPages, saveFile } from "../api.ts";
 import { askNewPage } from "../dialog.ts";
 import { createSplitEditor } from "../editor.ts";
+import { setWikiIndex } from "../link-directory.ts";
 import { createHistory } from "../history.ts";
 import { renderMarkdown } from "../markdown.ts";
 import { createSidebar } from "../sidebar.ts";
@@ -19,6 +21,8 @@ import { loadSetting, saveSetting } from "../storage.ts";
 import type { View, ViewContext } from "./types.ts";
 
 const LAST_FILE_KEY = "last-file:wiki";
+/** Shown after a link to a planning file (the style guide in README.md). */
+const PLANNING_MARKER = { emoji: "\u{1F4CB}", title: "Planning file" };
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, className: string, text?: string): HTMLElementTagNameMap[K] {
   const node = document.createElement(tag);
@@ -76,12 +80,19 @@ export function createWikiView(ctx: ViewContext): View {
     viewKey: "wiki",
     emptyMessage: "Choose a wiki page from the left.",
     onPathChange: ctx.refreshStatus,
-    render: (text) => renderMarkdown(text, { resolveWikiLink: (target) => index.resolve(target), frontmatter: "strip" }),
+    render: (text) =>
+      renderMarkdown(text, {
+        resolveWikiLink: (target) => resolveFromWiki(target, index, tree?.planning ?? null),
+        linkMarker: (path) => (path.startsWith("wiki/") ? null : PLANNING_MARKER),
+        frontmatter: "strip",
+      }),
     onPreviewClick: (event) => {
       const link = (event.target as Element | null)?.closest<HTMLAnchorElement>("a.wikilink");
       if (!link) return;
       event.preventDefault();
-      if (link.dataset.path) void go(link.dataset.path, "push");
+      const path = link.dataset.path;
+      if (path?.startsWith("wiki/")) void go(path, "push");
+      else if (path) void ctx.openPath(path);
       else if (link.dataset.target) void createFromLink(link.dataset.target);
     },
   });
@@ -141,6 +152,17 @@ export function createWikiView(ctx: ViewContext): View {
     return button;
   }
 
+  function planningButton(path: string): HTMLButtonElement {
+    const button = el("button", "sidebar-item", baseName(path));
+    const marker = el("span", "link-marker", PLANNING_MARKER.emoji);
+    marker.setAttribute("aria-hidden", "true");
+    button.append(marker);
+    button.type = "button";
+    button.title = `${PLANNING_MARKER.title}: ${path}`;
+    button.addEventListener("click", () => void ctx.openPath(path));
+    return button;
+  }
+
   function renderLinks(): void {
     const path = editor.currentPath();
     if (!path || !index.get(path)) {
@@ -169,6 +191,8 @@ export function createWikiView(ctx: ViewContext): View {
 
     const outItems = out.map(({ link, path: target }) => {
       if (target) return linkButton(target);
+      const planningPath = tree ? resolvePlanningLink(link.target, tree.planning) : null;
+      if (planningPath) return planningButton(planningPath);
       const button = el("button", "sidebar-item missing", link.target);
       button.type = "button";
       button.title = "No page yet. Click to create it.";
@@ -184,6 +208,7 @@ export function createWikiView(ctx: ViewContext): View {
 
   function rebuildIndex(): void {
     index = buildWikiIndex([...pages].map(([path, text]) => ({ path, text })));
+    setWikiIndex(index);
   }
 
   async function loadAll(): Promise<void> {
@@ -241,11 +266,19 @@ export function createWikiView(ctx: ViewContext): View {
     const paths = openablePaths(wikiSections(tree, index));
     const remembered = loadSetting<string>(LAST_FILE_KEY, "wiki/README.md");
     const first = paths.includes(remembered) ? remembered : paths[0];
-    if (first) void go(first, "push");
+    // A link from Planning may have opened a page while the wiki was loading; keep that one.
+    if (first && !editor.currentPath()) void go(first, "push");
   });
 
   // Pick up pages added, removed, or edited outside the app when the window comes back into focus.
   window.addEventListener("focus", () => void loadAll());
 
-  return { element, activePath: editor.currentPath, save: editor.save };
+  return {
+    element,
+    activePath: editor.currentPath,
+    save: editor.save,
+    open: async (path) => {
+      await go(path, "push");
+    },
+  };
 }

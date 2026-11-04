@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { resolvePlanningLink } from "../src/shared/planning-links.ts";
+import { resolveFromPlanning, resolveFromWiki, resolvePlanningLink } from "../src/shared/planning-links.ts";
 import { buildTree } from "../src/shared/tree.ts";
 
 const tree = buildTree([
@@ -58,5 +58,33 @@ describe("resolvePlanningLink", () => {
   it("returns null for an empty target", () => {
     assert.equal(resolve(""), null);
     assert.equal(resolve("  "), null);
+  });
+});
+
+describe("resolveFromPlanning", () => {
+  const wiki = { resolve: (target: string): string | null => (target === "aster" || target === "threads" ? "wiki/characters/aster.md" : null) };
+
+  it("tries planning files first, then wiki pages", () => {
+    assert.equal(resolveFromPlanning("threads", tree.planning, wiki), "planning/threads.md");
+    assert.equal(resolveFromPlanning("aster", tree.planning, wiki), "wiki/characters/aster.md");
+  });
+
+  it("is null when neither area matches", () => {
+    assert.equal(resolveFromPlanning("nothing-here", tree.planning, wiki), null);
+  });
+});
+
+describe("resolveFromWiki", () => {
+  const wikiPages: Record<string, string> = { aster: "wiki/characters/aster.md", threads: "wiki/terms/threads.md" };
+  const wiki = { resolve: (target: string): string | null => wikiPages[target] ?? null };
+
+  it("tries wiki pages first, then planning files", () => {
+    assert.equal(resolveFromWiki("threads", wiki, tree.planning), "wiki/terms/threads.md");
+    assert.equal(resolveFromWiki("theme-map", wiki, tree.planning), "planning/theme-map.md");
+  });
+
+  it("is null when neither area matches, or the planning list isn't loaded yet", () => {
+    assert.equal(resolveFromWiki("nothing-here", wiki, tree.planning), null);
+    assert.equal(resolveFromWiki("theme-map", wiki, null), null);
   });
 });

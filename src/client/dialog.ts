@@ -95,7 +95,8 @@ export function showHelp(): void {
   tips.className = "help-tips";
   for (const tip of [
     "Source and Preview (above each file) hide or show either side of the editor.",
-    "Red wiki links have no page yet; click one to create it from the folder's template.",
+    "Red wiki links have no page yet; click one to create it from the folder's template. Red links in Planning match no file and do nothing.",
+    "[[Links]] work in Planning too, and cross over: \u{1F4DA} marks a link from Planning to a wiki page, and \u{1F4CB} a link from the Wiki to a planning file.",
     "If a file changes on disk while it's open, saving stops and asks: reload or keep yours.",
     "Daily word counts are net: words now minus words at the start of the day.",
   ]) {

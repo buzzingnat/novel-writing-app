@@ -56,6 +56,18 @@ describe("renderMarkdown with wiki links", () => {
     assert.match(renderMarkdown("See [[the-empire]]."), /See \[\[the-empire\]\]\./);
   });
 
+  it("adds a marker after links the marker callback names, and not to others", () => {
+    const paths: Record<string, string> = { aster: "wiki/characters/aster.md", threads: "planning/threads.md" };
+    const html = renderMarkdown("[[aster]] [[threads]] [[nope]] `[[aster]]`", {
+      resolveWikiLink: (target) => paths[target] ?? null,
+      linkMarker: (path) => (path.startsWith("wiki/") ? { emoji: "\u{1F4DA}", title: "Wiki page" } : null),
+    });
+    assert.match(html, /data-path="wiki\/characters\/aster.md"[^>]*>aster<span class="link-marker" title="Wiki page" aria-hidden="true">\u{1F4DA}<\/span><\/a>/u);
+    assert.match(html, /data-path="planning\/threads.md"[^>]*>threads<\/a>/);
+    assert.match(html, /class="wikilink missing"[^>]*>nope<\/a>/);
+    assert.equal(html.split("link-marker").length - 1, 1);
+  });
+
   it("uses the hover text given for red links", () => {
     const html = renderMarkdown("See [[nothing-here]].", {
       resolveWikiLink: () => null,

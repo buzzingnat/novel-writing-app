@@ -5,6 +5,8 @@ import { parseLinkInner, type WikiLink } from "../shared/wikilinks.ts";
 export interface RenderOptions {
   /** Turns [[links]] into clickable links (Wiki view only). Returns the page path, or null for a red link. */
   resolveWikiLink?: (target: string) => string | null;
+  /** Emoji shown after a link's label when it points into the other area (the style guide in README.md). */
+  linkMarker?: (path: string) => { emoji: string; title: string } | null;
   /** Hover text for a red link; the default suits the Wiki, where clicking creates a page. */
   missingLinkHint?: string;
   /** "raw" shows the YAML as a muted block; "strip" shows a short summary line (Wiki view). */
@@ -15,6 +17,7 @@ export interface RenderOptions {
 type RenderEnv = {
   resolveWikiLink?: (target: string) => string | null;
   missingLinkHint?: string;
+  linkMarker?: RenderOptions["linkMarker"];
 };
 
 // Raw HTML in the Markdown files is shown as text, never run, so the preview
@@ -52,7 +55,8 @@ const wikiLinkRule: Parameters<typeof md.inline.ruler.before>[2] = (state, silen
   if (!link) return false;
   if (!silent) {
     const token = state.push("wikilink", "", 0);
-    token.meta = { link, path: env.resolveWikiLink(link.target), missingHint: env.missingLinkHint };
+    const path = env.resolveWikiLink(link.target);
+    token.meta = { link, path, missingHint: env.missingLinkHint, marker: path === null ? null : (env.linkMarker?.(path) ?? null) };
   }
   state.pos = close + 2;
   return true;
@@ -60,16 +64,20 @@ const wikiLinkRule: Parameters<typeof md.inline.ruler.before>[2] = (state, silen
 md.inline.ruler.before("link", "wikilink", wikiLinkRule);
 
 md.renderer.rules.wikilink = (tokens, idx) => {
-  const { link, path, missingHint } = tokens[idx]?.meta as {
+  const { link, path, missingHint, marker } = tokens[idx]?.meta as {
     link: WikiLink;
     path: string | null;
     missingHint?: string;
+    marker: { emoji: string; title: string } | null;
   };
   const label = escape(link.label ?? (link.heading ? `${link.target} › ${link.heading}` : link.target));
   if (path === null) {
     return `<a href="#" class="wikilink missing" data-target="${escape(link.target)}" title="${escape(missingHint ?? "No page yet. Click to create it.")}">${label}</a>`;
   }
-  return `<a href="#" class="wikilink" data-path="${escape(path)}" title="${escape(path)}">${label}</a>`;
+  const markerHtml = marker
+    ? `<span class="link-marker" title="${escape(marker.title)}" aria-hidden="true">${marker.emoji}</span>`
+    : "";
+  return `<a href="#" class="wikilink" data-path="${escape(path)}" title="${escape(path)}">${label}${markerHtml}</a>`;
 };
 
 function frontmatterSummary(text: string): { html: string; body: string } {
@@ -93,7 +101,10 @@ function frontmatterSummary(text: string): { html: string; body: string } {
 
 /** Renders a Markdown file for the preview. */
 export function renderMarkdown(text: string, options: RenderOptions = {}): string {
-  const env: RenderEnv = { resolveWikiLink: options.resolveWikiLink, missingLinkHint: options.missingLinkHint };
+  const env: RenderEnv = {
+    resolveWikiLink: options.resolveWikiLink, missingLinkHint: options.missingLinkHint,
+    linkMarker: options.linkMarker,
+  };
   if (options.frontmatter === "strip") {
     const { html, body } = frontmatterSummary(text);
     return html + md.render(body, env);

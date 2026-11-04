@@ -2,8 +2,8 @@
 
 A small local browser app for reading and editing the Markdown files in `novel2026/`:
 
-- **Planning**: the Snowflake Method files, with unstarted steps greyed out.
-- **Wiki**: the continuity wiki, with clickable `[[links]]`, backlinks, and back/forward.
+- **Planning**: the Snowflake Method files, with unstarted steps greyed out, and clickable `[[links]]` to other planning files and to wiki pages.
+- **Wiki**: the continuity wiki, with clickable `[[links]]` (to wiki pages and planning files), backlinks, and back/forward.
 - **Manuscript**: chapters in a distraction-free editor, with word counts and a daily tracker.
 
 Files on disk stay the source of truth. They're plain Markdown, still readable in Obsidian or any editor. The design, build plan, and hand-off summary for the feature in progress are in [design.md](design.md), [plan.md](plan.md), and [handoff.md](handoff.md). Past work is in [coding-log.md](coding-log.md).
@@ -63,6 +63,7 @@ The novel folder isn't under version control, so keep a backup (for example `rsy
 
 ```
 src/shared/   pure logic, tested in Node: paths, tree grouping, wiki links,
+              planning links,
               frontmatter, word counts, chapters, daily log
 src/server/   http server, safe file access, API routes, daily log updates
 src/client/   browser app: views (planning, wiki, manuscript), split editor,

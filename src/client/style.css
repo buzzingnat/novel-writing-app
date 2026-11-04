@@ -857,3 +857,14 @@ kbd {
     padding-right: 14px;
   }
 }
+
+/* Emoji after links that point into the other area: wiki pages from Planning, planning files from the Wiki. */
+.markdown-body a.wikilink .link-marker {
+  margin-left: 0.25em;
+  font-size: 0.85em;
+}
+
+.sidebar-item .link-marker {
+  margin-left: 0.25em;
+  font-size: 0.85em;
+}

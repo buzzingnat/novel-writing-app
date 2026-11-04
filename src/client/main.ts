@@ -71,7 +71,17 @@ function start(): void {
     status.textContent = statusLabel(doc, formatTime);
     status.dataset.status = doc ? docStatus(doc) : "";
   };
-  const ctx: ViewContext = { store, refreshStatus };
+  const ctx: ViewContext = {
+    store,
+    refreshStatus,
+    openPath: async (path) => {
+      const name: ViewName = path.startsWith("wiki/") ? "wiki" : "planning";
+      // Setting the hash also fires hashchange later; show() is safe to run twice.
+      location.hash = name;
+      show();
+      await views.get(name)?.open?.(path);
+    },
+  };
   store.subscribe(refreshStatus);
 
   const tabs = new Map<ViewName, HTMLButtonElement>();

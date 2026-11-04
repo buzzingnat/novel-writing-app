@@ -131,3 +131,63 @@ Graph view; wiki links inside the manuscript; daily word goals and streaks; chap
 - **Nested backup:** a second backup copy sits inside the novel folder, at `novel2026/novel2026-backup-2026-11-03`. The app never shows it, but it's within the folder the app can write to; consider moving or deleting it (the other copy is at `~/projects/novel2026-backup-2026-11-03`).
 - **Claude's preview config:** `novel2026/.claude/launch.json` was added for Claude's scratch-copy previews. It's outside the app repo and can be deleted.
 - **Ongoing backups:** the novel folder still isn't under version control. Back it up regularly, or consider putting it in git.
+
+
+---
+
+## Entry 2: links between Planning and Wiki (plan steps L1 to L5, approved 2026-11-04)
+
+# Handoff: links between Planning and Wiki
+
+Status: **Built (plan steps L1 to L5); L1 to L4 tested and approved by the author, L5 awaiting review.** Code is not committed yet (the app repo shows the changes as modified files).
+
+Companion documents: [design.md](design.md), [plan.md](plan.md), [README.md](README.md). Past work is in [coding-log.md](coding-log.md).
+
+---
+
+## What was built
+`[[name]]`, `[[name|label]]`, and `[[name#heading]]` now work in the Planning view and cross between Planning and the Wiki.
+
+- **Planning links:** clickable in the Planning preview. They match planning files by file name (case, spaces, hyphens, underscores, `.md`, and any folder prefix are ignored). A file outside `planning/archive/` beats an archive file with the same name. `progress.md` counts. Unstarted Snowflake steps do not.
+- **Planning to Wiki:** a link that matches no planning file falls back to a wiki page. Clicking switches to the Wiki tab and opens the page. Marked 📚.
+- **Wiki to Planning:** a link in a wiki page that matches no wiki page falls back to a planning file. Clicking switches to the Planning tab and opens the file. Marked 📋, in the preview and in the **Links out** panel.
+- **Which area wins** on a name clash: a link's own area first.
+- **Red links:** in Planning, a link that matches nothing is red and does nothing. In the Wiki, unchanged: red, and clicking offers to create a wiki page.
+- **Markers** are added when rendering, never saved into the Markdown files. They have hover text and are hidden from screen readers. The convention is in the README Style guide.
+- **Unchanged:** links in code stay plain text; the Manuscript has no links; **Links here** in the Wiki lists wiki pages only.
+- **Help (`?`)** and README mention the new links.
+
+## Decisions and where they live
+| Decision | Where in the code |
+|---|---|
+| Matching rule for planning files, archive tie-break | `resolvePlanningLink`, src/shared/planning-links.ts:11 |
+| Planning-first then wiki | `resolveFromPlanning`, src/shared/planning-links.ts:26; used in src/client/views/planning.ts:28 |
+| Wiki-first then planning | `resolveFromWiki`, src/shared/planning-links.ts:35; used in src/client/views/wiki.ts:85 |
+| 📚 on planning-to-wiki links | src/client/views/planning.ts:29 |
+| 📋 on wiki-to-planning links, preview and Links out | src/client/views/wiki.ts:25, 86, 155-166 |
+| Marker markup and hover text | src/client/markdown.ts:9, 59, and the wikilink renderer |
+| Red link in Planning does nothing, with its own hover text | src/client/views/planning.ts:30-41; src/client/markdown.ts:11 |
+| Crossing between tabs | `openPath`, src/client/main.ts:77; `View.open`, src/client/views/types.ts |
+| Shared wiki page list for Planning | src/client/link-directory.ts |
+| A link-opened file is not replaced by the "reopen last file" step | src/client/views/wiki.ts and planning.ts, the initial load `.then` |
+
+## How to run and test
+From `app/`: `npm run build && npm start`, then open <http://localhost:4747>. Tests: `npm test` and `npm run typecheck` (154 tests passed, typecheck clean at the time of writing). Back up first, since testing saves real files: `node backup.mjs /Volumes/2026-hillary-writing-projects`.
+
+## Known limits
+- A new or renamed file is not noticed by links until the window regains focus, the tree reloads, or a wiki page is saved.
+- The Planning preview does not refresh when a wiki page is edited in the Wiki tab until you edit or reopen the planning file.
+- Wiki **Links here** does not count planning files that link to a page.
+- Several existing `[[ ]]` links in planning point at files that do not exist (for example `archive/01-one-sentence-drafts.md` in 01-one-sentence.md). They show red; the author is fixing them by hand.
+- Browser behavior was tested by the author step by step; the assistant did not run the app in a browser.
+
+## Ideas left out
+- A links-here / links-out panel for Planning.
+- Counting planning files in Wiki backlinks.
+- Rewriting links when a file is renamed.
+- Auto-linking bare paths such as `planning/threads.md` (the author will convert those by hand).
+- Standard `[text](file.md)` links.
+- Creating planning files from red links.
+
+## Backup reminder
+Run `node backup.mjs /Volumes/2026-hillary-writing-projects` from `novel2026/` before and after the next round of changes.

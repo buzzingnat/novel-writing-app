@@ -1,7 +1,8 @@
-import { resolvePlanningLink } from "../../shared/planning-links.ts";
+import { resolveFromPlanning } from "../../shared/planning-links.ts";
 import type { Tree } from "../../shared/tree.ts";
 import { fetchTree } from "../api.ts";
 import { createSplitEditor } from "../editor.ts";
+import { getWikiIndex, refreshWikiIndex } from "../link-directory.ts";
 import { renderMarkdown } from "../markdown.ts";
 import { createSidebar } from "../sidebar.ts";
 import { openablePaths, planningSections, type SidebarSection } from "../sidebar-model.ts";
@@ -24,7 +25,8 @@ export function createPlanningView(ctx: ViewContext): View {
     onPathChange: ctx.refreshStatus,
     render: (text) =>
       renderMarkdown(text, {
-        resolveWikiLink: (target) => (planning ? resolvePlanningLink(target, planning) : null),
+        resolveWikiLink: (target) => (planning ? resolveFromPlanning(target, planning, getWikiIndex()) : null),
+        linkMarker: (path) => (path.startsWith("wiki/") ? { emoji: "\u{1F4DA}", title: "Wiki page" } : null),
         missingLinkHint: "No planning file matches this link.",
       }),
     onPreviewClick: (event) => {
@@ -32,7 +34,10 @@ export function createPlanningView(ctx: ViewContext): View {
       if (!link) return;
       // Links are href="#"; never let the browser follow them. A red link does nothing.
       event.preventDefault();
-      if (link.dataset.path) void openFile(link.dataset.path);
+      const path = link.dataset.path;
+      if (!path) return;
+      if (path.startsWith("wiki/")) void ctx.openPath(path);
+      else void openFile(path);
     },
   });
 
@@ -49,7 +54,8 @@ export function createPlanningView(ctx: ViewContext): View {
   let sections: SidebarSection[] = [];
   const loadTree = async (): Promise<void> => {
     try {
-      const tree = await fetchTree();
+      // Wiki pages are linkable too; if they can't be read, planning links still work.
+      const [tree] = await Promise.all([fetchTree(), refreshWikiIndex().catch(() => undefined)]);
       planning = tree.planning;
       sections = planningSections(tree);
       sidebar.render(sections);
@@ -65,11 +71,19 @@ export function createPlanningView(ctx: ViewContext): View {
     const paths = openablePaths(sections);
     const remembered = loadSetting<string>(LAST_FILE_KEY, "progress.md");
     const first = paths.includes(remembered) ? remembered : paths[0];
-    if (first) void openFile(first);
+    // A link from the Wiki may have opened a file while the tree loaded; keep that one.
+    if (first && !editor.currentPath()) void openFile(first);
   });
 
   // Pick up files added or removed outside the app when the window comes back into focus.
   window.addEventListener("focus", () => void loadTree());
 
-  return { element, activePath: editor.currentPath, save: editor.save };
+  return {
+    element,
+    activePath: editor.currentPath,
+    save: editor.save,
+    open: async (path) => {
+      await openFile(path);
+    },
+  };
 }
