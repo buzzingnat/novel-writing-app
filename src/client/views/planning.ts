@@ -1,5 +1,8 @@
+import { resolvePlanningLink } from "../../shared/planning-links.ts";
+import type { Tree } from "../../shared/tree.ts";
 import { fetchTree } from "../api.ts";
 import { createSplitEditor } from "../editor.ts";
+import { renderMarkdown } from "../markdown.ts";
 import { createSidebar } from "../sidebar.ts";
 import { openablePaths, planningSections, type SidebarSection } from "../sidebar-model.ts";
 import { loadSetting, saveSetting } from "../storage.ts";
@@ -11,11 +14,26 @@ export function createPlanningView(ctx: ViewContext): View {
   const element = document.createElement("div");
   element.className = "with-sidebar";
 
+  // The planning files [[links]] can reach; refreshed whenever the tree reloads.
+  let planning: Tree["planning"] | null = null;
+
   const editor = createSplitEditor({
     store: ctx.store,
     viewKey: "planning",
     emptyMessage: "Choose a file from the sidebar.",
     onPathChange: ctx.refreshStatus,
+    render: (text) =>
+      renderMarkdown(text, {
+        resolveWikiLink: (target) => (planning ? resolvePlanningLink(target, planning) : null),
+        missingLinkHint: "No planning file matches this link.",
+      }),
+    onPreviewClick: (event) => {
+      const link = (event.target as Element | null)?.closest<HTMLAnchorElement>("a.wikilink");
+      if (!link) return;
+      // Links are href="#"; never let the browser follow them. A red link does nothing.
+      event.preventDefault();
+      if (link.dataset.path) void openFile(link.dataset.path);
+    },
   });
 
   const openFile = async (path: string): Promise<void> => {
@@ -31,9 +49,12 @@ export function createPlanningView(ctx: ViewContext): View {
   let sections: SidebarSection[] = [];
   const loadTree = async (): Promise<void> => {
     try {
-      sections = planningSections(await fetchTree());
+      const tree = await fetchTree();
+      planning = tree.planning;
+      sections = planningSections(tree);
       sidebar.render(sections);
       sidebar.setActive(editor.currentPath());
+      editor.refreshPreview();
     } catch (error) {
       sidebar.element.textContent = `Couldn't load files: ${error instanceof Error ? error.message : String(error)}`;
     }

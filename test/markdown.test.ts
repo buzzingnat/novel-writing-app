@@ -56,6 +56,23 @@ describe("renderMarkdown with wiki links", () => {
     assert.match(renderMarkdown("See [[the-empire]]."), /See \[\[the-empire\]\]\./);
   });
 
+  it("uses the hover text given for red links", () => {
+    const html = renderMarkdown("See [[nothing-here]].", {
+      resolveWikiLink: () => null,
+      missingLinkHint: "No planning file matches this link.",
+    });
+    assert.match(html, /class="wikilink missing"[^>]*title="No planning file matches this link\."/);
+  });
+
+  it("links planning files with a label, and leaves links in code as text", () => {
+    const paths: Record<string, string> = { threads: "planning/threads.md" };
+    const html = renderMarkdown("[[threads|the ledger]] and `[[threads]]`", {
+      resolveWikiLink: (target) => paths[target] ?? null,
+    });
+    assert.match(html, /<a href="#" class="wikilink" data-path="planning\/threads.md"[^>]*>the ledger<\/a>/);
+    assert.match(html, /<code>\[\[threads\]\]<\/code>/);
+  });
+
   it("links resolved pages and marks missing ones", () => {
     const html = renderMarkdown("See [[the-empire|the Empire]] and [[old-port]].", { resolveWikiLink });
     assert.match(html, /<a href="#" class="wikilink" data-path="wiki\/factions\/the-empire.md"[^>]*>the Empire<\/a>/);

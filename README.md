@@ -6,7 +6,22 @@ A small local browser app for reading and editing the Markdown files in `novel20
 - **Wiki**: the continuity wiki, with clickable `[[links]]`, backlinks, and back/forward.
 - **Manuscript**: chapters in a distraction-free editor, with word counts and a daily tracker.
 
-Files on disk stay the source of truth. They're plain Markdown, still readable in Obsidian or any editor. Design and decisions are in [design.md](design.md), the build plan in [plan.md](plan.md), and the hand-off summary in [handoff.md](handoff.md).
+Files on disk stay the source of truth. They're plain Markdown, still readable in Obsidian or any editor. The design, build plan, and hand-off summary for the feature in progress are in [design.md](design.md), [plan.md](plan.md), and [handoff.md](handoff.md). Past work is in [coding-log.md](coding-log.md).
+
+## Process
+
+Each feature goes through the same steps:
+
+1. **Design** in `design.md`, with open questions answered by the author.
+2. **Plan** in `plan.md`, as small steps.
+3. **Build one step at a time.** After each step the author tests it and approves before the next begins.
+4. **Hand off** in `handoff.md`, then copy it into `coding-log.md`.
+
+`design.md`, `plan.md`, and `handoff.md` describe only the current feature. When a new feature starts, they are reset to clean templates, and `coding-log.md` keeps the finished handoffs as a reference of past work.
+
+## Style guide
+
+- **Link markers.** An outgoing `[[link]]` that points into the other area carries an emoji after its label: 📋 (U+1F4CB) on a link in the Wiki that points to a planning file, and 📚 (U+1F4DA) on a link in Planning that points to a wiki page. Links within the same area have no marker. The app adds markers when it renders; they are never saved into the Markdown files.
 
 ## Run it
 
